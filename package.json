@@ -1,0 +1,20 @@
+{
+  "name": "yesbee-http",
+  "version": "0.0.1",
+  "description": "yesbee http module",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "q": "~1.1.2",
+    "request": "~2.48.0",
+    "lodash": "~2.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ganesha <reekoheek@gmail.com>",
+  "license": "MIT"
+}
