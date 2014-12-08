@@ -1,0 +1,25 @@
+{
+    "port": 8888,
+    "container": "./test",
+    "autostart": [
+        "http",
+        "test_http"
+    ],
+    "cluster": {
+        "host": "127.0.0.1",
+        "port": "8001",
+        "members": [
+            "127.0.0.1:8001",
+            "127.0.0.1:8002",
+            "127.0.0.1:8003"
+        ]
+    },
+    "dependencies": [
+        "."
+    ],
+    "env": {
+        "development": {
+            "debug": true
+        }
+    }
+}

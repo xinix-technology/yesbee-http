@@ -32,7 +32,7 @@ var Q = require('q'),
     http = require('http'),
     _ = require('lodash');
 
-var logger, Exchange;
+var logger, Exchange, Channel;
 
 var HTTPWrapper = function(context, uri) {
     var that = this;
@@ -215,6 +215,7 @@ HTTPWrapper.prototype = {
 module.exports = function(yesbee) {
     logger = yesbee.logger;
     Exchange = yesbee.Exchange;
+    Channel = yesbee.Channel;
 
     // dependencies: [
     //     'http',
