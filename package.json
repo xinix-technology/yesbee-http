@@ -1,6 +1,6 @@
 {
   "name": "yesbee-http",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "yesbee http module",
   "main": "index.js",
   "directories": {
