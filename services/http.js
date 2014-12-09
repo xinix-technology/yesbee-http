@@ -140,17 +140,17 @@ HTTPWrapper.prototype = {
 
             var exchange = new Exchange();
 
-            exchange.header('yesbee-http-server', this.hostname + ':' + this.port);
-            exchange.header('yesbee-http-handler', handlerIndex);
-            exchange.header('yesbee-http-version', req.httpVersion);
-            exchange.header('yesbee-request-method', req.method);
-            exchange.header('yesbee-request-url', req.url);
-            exchange.header('yesbee-query-string', parsed.query);
-            exchange.header('yesbee-translated-path', pathname);
-            exchange.header('yesbee-translated-uri', pathname.substr(handlerIndex.length === 1 ? 0 : handlerIndex.length));
+            exchange.header('http::server', this.hostname + ':' + this.port);
+            exchange.header('http::handler', handlerIndex);
+            exchange.header('http::version', req.httpVersion);
+            exchange.header('http::request-method', req.method);
+            exchange.header('http::request-url', req.url);
+            exchange.header('http::query-string', parsed.query);
+            exchange.header('http::translated-path', pathname);
+            exchange.header('http::translated-uri', pathname.substr(handlerIndex.length === 1 ? 0 : handlerIndex.length));
 
             for (var key in req.headers) {
-                exchange.header('http-'+key, req.headers[key]);
+                exchange.header('http::'+key, req.headers[key]);
             }
 
             exchange.body = req;

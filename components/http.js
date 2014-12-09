@@ -29,6 +29,7 @@
  */
 var Q = require('q'),
     _ = require('lodash'),
+    qs = require('querystring'),
     request = require('request');
 
 module.exports = {
@@ -69,9 +70,22 @@ module.exports = {
             var deferred = Q.defer();
 
             if (this.options.proxy) {
-
                 if (exchange.body.pipe) {
-                    var resp = exchange.body.pipe(request({method: exchange.body.method, uri: this.uri + exchange.body.url}));
+                    var headers = {};
+                    for(var i in exchange.headers) {
+                        if (i.indexOf('http::') === 0) {
+                            var header = exchange.headers[i];
+                            headers[i.substr(6)] = header;
+                        }
+                    }
+
+                    var outboundRequest = request({
+                        method: exchange.header('http::request-method'),
+                        uri: this.uri + exchange.header('http::translated-uri'),
+                        qs: qs.parse(exchange.header('http::query-string')),
+                        headers: headers,
+                    });
+                    var resp = exchange.body.pipe(outboundRequest);
                     exchange.body = resp;
                     deferred.resolve(exchange);
                 } else {
@@ -80,9 +94,10 @@ module.exports = {
 
             } else {
 
-                if(exchange.headers['yesbee-request-method'] == 'GET') {
+                if(exchange.headers['http::request-method'] == 'GET') {
 
-                    request(this.uri + exchange.headers['yesbee-translated-uri'], function(err, res, body) {
+
+                    request(this.uri + exchange.headers['http::translated-uri'], function(err, res, body) {
 
                         if (!err && res.statusCode == 200) {
                             exchange.body = body;
@@ -100,8 +115,8 @@ module.exports = {
                     if(typeof exchange.body == "object") _data = exchange.body;
 
                     request({
-                        method: exchange.headers['yesbee-request-method'],
-                        uri: this.uri + exchange.headers['yesbee-translated-uri'],
+                        method: exchange.headers['http::request-method'],
+                        uri: this.uri + exchange.headers['http::translated-uri'],
                         form: _data
                     }, function(err, res, body) {
 
