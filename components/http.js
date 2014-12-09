@@ -116,11 +116,13 @@ module.exports = {
 
                     request({
                         method: exchange.headers['http::request-method'],
-                        uri: this.uri + exchange.headers['http::translated-uri'],
+                        // uri: this.uri + exchange.headers['http::translated-uri'],
+                        uri: this.uri,
                         form: _data
                     }, function(err, res, body) {
 
                         if (!err && res.statusCode == 200) {
+                             console.log(body);
                             exchange.body = body;
                         } else {
                             exchange.error = new Error('HTTP error!');
