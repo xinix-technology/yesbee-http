@@ -85,52 +85,86 @@ module.exports = {
                         qs: qs.parse(exchange.header('http::query-string')),
                         headers: headers,
                     });
-                    var resp = exchange.body.pipe(outboundRequest);
-                    exchange.body = resp;
-                    deferred.resolve(exchange);
+
+                    if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
+                        var resp = exchange.body.pipe(outboundRequest);
+                        exchange.body = resp;
+                        deferred.resolve(exchange);
+                    } else {
+                        outboundRequest.on('response', function(resp) {
+                            exchange.body = resp;
+                            deferred.resolve(exchange);
+                        });
+
+                        outboundRequest.on('error', function(e) {
+                            exchange.error = e;
+                            // FIXME change this to use deferred.reject for error handling
+                            // instead of using deferred.resolve, for better clarity
+                            deferred.resolve(exchange);
+                        });
+
+                        var body = exchange.body;
+                        if (body) {
+                            if (typeof body !== 'string') {
+                                body = JSON.stringify(body);
+                            }
+                            outboundRequest.write(body);
+                        }
+                        outboundRequest.end();
+                    }
                 } else {
                     throw new Error('Unimplemented yet!');
                 }
 
             } else {
 
-                if(exchange.headers['http::request-method'] == 'GET') {
+                // if(exchange.headers['http::request-method'] == 'GET') {
 
+                //     // TODO: untuk handlng stream atau non stream request body
+                //     request(this.uri + exchange.headers['http::translated-uri'], function(err, res, body) {
 
-                    request(this.uri + exchange.headers['http::translated-uri'], function(err, res, body) {
+                //         if (!err && res.statusCode == 200) {
+                //             exchange.body = body;
+                //         } else {
+                //             exchange.error = new Error('HTTP error!');
+                //             exchange.error.statusCode = res.statusCode;
+                //         }
+                //         deferred.resolve(exchange);
+                //     });
 
-                        if (!err && res.statusCode == 200) {
-                            exchange.body = body;
-                        } else {
-                            exchange.error = new Error('HTTP error!');
-                            exchange.error.statusCode = res.statusCode;
-                        }
-                        deferred.resolve(exchange);
-                    });
-
-                } else {
+                // } else {
 
                     var _data = {};
 
                     if(typeof exchange.body == "object") _data = exchange.body;
 
-                    request({
+                    var outboundRequest = request({
                         method: exchange.headers['http::request-method'],
                         // uri: this.uri + exchange.headers['http::translated-uri'],
-                        uri: this.uri,
-                        form: _data
+                        uri: this.uri
                     }, function(err, res, body) {
 
-                        if (!err && res.statusCode == 200) {
-                             console.log(body);
+                        if (!err) {
                             exchange.body = body;
                         } else {
-                            exchange.error = new Error('HTTP error!');
-                            exchange.error.statusCode = res.statusCode;
+                            exchange.error = err;
                         }
                         deferred.resolve(exchange);
                     });
-                }
+
+                    if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
+                        exchange.body.pipe(outboundRequest);
+                    } else {
+                        var body = exchange.body;
+                        if (body) {
+                            if (typeof body !== 'string') {
+                                body = JSON.stringify(body);
+                            }
+                            outboundRequest.write(body);
+                        }
+                        outboundRequest.end();
+                    }
+                // }
             }
             return deferred.promise;
         }

@@ -180,10 +180,19 @@ HTTPWrapper.prototype = {
             }
             scope.response.end(JSON.stringify({error:exchange.error.message}));
         } else {
-            if (exchange.body.pipe) {
+            if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
                 exchange.body.pipe(scope.response);
             } else {
-                scope.response.write(exchange.body);
+
+                if (exchange.body) {
+                    var textBody;
+                    if(typeof exchange.body === 'string') {
+                        textBody = exchange.body;
+                    } else {
+                        textBody = JSON.stringify(exchange.body);
+                    }
+                    scope.response.write(textBody);
+                }
                 scope.response.end();
             }
         }
