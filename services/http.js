@@ -75,7 +75,7 @@ HTTPWrapper.prototype = {
     route: function(pathname, handler) {
         pathname = this.normalizePath(pathname);
         this.routes[pathname] = handler;
-        logger.i(this.context.id, 'add route ' + pathname + ' on ' + this.hostname + ':' + this.port);
+        logger(this.context).info('add route %s on %s:%s', pathname, this.hostname, this.port);
     },
 
     deroute: function(pathname, handler) {
@@ -85,7 +85,7 @@ HTTPWrapper.prototype = {
         if (existingHandler === handler) {
             delete this.routes[pathname];
         }
-        logger.i(this.context.id, 'delete route ' + pathname + ' on ' + this.hostname + ':' + this.port);
+        logger(this.context).info('delete route %s on %s:%s', pathname, this.hostname, this.port);
     },
 
     listen: function() {
@@ -93,7 +93,7 @@ HTTPWrapper.prototype = {
             that = this;
 
         this.server.listen(this.port, this.hostname, function() {
-            logger.i(that.context.id, 'server listening on ' + that.hostname + ':' + that.port);
+            logger(that.context).info('server listening on %s:%s', that.hostname, that.port);
             deferred.resolve();
         });
 
