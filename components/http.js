@@ -30,7 +30,9 @@
 var Q = require('q'),
     _ = require('lodash'),
     qs = require('querystring'),
-    request = require('request');
+    request = require('request'),
+    url = require('url'),
+    http = require('http');
 
 module.exports = {
     // options: {exchangePattern: 'inOut'},
@@ -75,7 +77,11 @@ module.exports = {
                     for(var i in exchange.headers) {
                         if (i.indexOf('http::') === 0) {
                             var header = exchange.headers[i];
-                            headers[i.substr(6)] = header;
+                            var key = i.substr(6);
+                            if (key === 'server' || key === 'host') {
+                                continue;
+                            }
+                            headers[key] = header;
                         }
                     }
 
@@ -86,17 +92,42 @@ module.exports = {
                         headers: headers,
                     });
 
+                    var parsed = url.parse(this.uri);
+
                     if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
-                        var resp = exchange.body.pipe(outboundRequest);
-                        exchange.body = resp;
-                        deferred.resolve(exchange);
+
+                        var options = {
+                            hostname: parsed.host,
+                            port: parsed.port,
+                            path: parsed.path + exchange.header('http::translated-uri'),
+                            headers: headers,
+                            method: exchange.header('http::request-method')
+                        };
+
+                        var req = http.request(options);
+
+                        req.on('response', function(resp) {
+                            deferred.resolve(resp);
+                        });
+
+                        req.on('error', function(e) {
+                            console.log('problem with request: ' + e.message);
+                        });
+
+                        exchange.body.pipe(req);
+
                     } else {
+
+                        // TODO: implement native nodejs http
+
                         outboundRequest.on('response', function(resp) {
                             exchange.body = resp;
                             deferred.resolve(exchange);
                         });
 
                         outboundRequest.on('error', function(e) {
+
+                            console.log('ERROR ....');
                             exchange.error = e;
                             // FIXME change this to use deferred.reject for error handling
                             // instead of using deferred.resolve, for better clarity
