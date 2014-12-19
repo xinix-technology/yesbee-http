@@ -107,6 +107,7 @@ module.exports = {
                         var req = http.request(options);
 
                         req.on('response', function(resp) {
+                            exchange.header('http::status-code', resp.statusCode);
                             deferred.resolve(resp);
                         });
 

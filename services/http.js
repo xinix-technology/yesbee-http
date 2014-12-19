@@ -183,6 +183,9 @@ HTTPWrapper.prototype = {
             }
             scope.response.end(JSON.stringify({error:exchange.error.message}));
         } else {
+            if(exchange.header('http::status-code')) {
+                scope.response.writeHead(exchange.header('http::status-code'));
+            }
             if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
                 exchange.body.pipe(scope.response);
             } else {
