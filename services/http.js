@@ -174,6 +174,13 @@ HTTPWrapper.prototype = {
 
     callback: function(exchange) {
         var scope = this.scopes[exchange.id];
+        
+        var headers = {};
+        for(var i in exchange.headers) {
+                if (i.indexOf('http::') === 0) {
+                    headers[i.substr(6)] = exchange.headers[i];
+                }
+        }
 
         if (exchange.error) {
             if (exchange.error.statusCode) {
@@ -184,12 +191,12 @@ HTTPWrapper.prototype = {
             scope.response.end(JSON.stringify({error:exchange.error.message}));
         } else {
             if(exchange.header('http::status-code')) {
-                scope.response.writeHead(exchange.header('http::status-code'));
+                scope.response.writeHead(exchange.header('http::status-code'), headers);
             }
             if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
                 exchange.body.pipe(scope.response);
             } else {
-
+                
                 if (exchange.body) {
                     var textBody;
                     if(typeof exchange.body === 'string') {
@@ -240,7 +247,6 @@ module.exports = function(yesbee) {
 
     this.get = function(uri) {
         var parsed = url.parse(uri);
-
         var s = this.servers[parsed.host];
         if (!s) {
             s = this.servers[parsed.host] = new HTTPWrapper(this, uri);

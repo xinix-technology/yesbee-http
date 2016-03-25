@@ -68,7 +68,6 @@ module.exports = {
         if (this.type === 'source') {
             return exchange;
         } else {
-
             var deferred = Q.defer();
 
             if (this.options.proxy) {
@@ -85,13 +84,7 @@ module.exports = {
                         }
                     }
 
-                    var outboundRequest = request({
-                        method: exchange.header('http::request-method'),
-                        uri: this.uri + exchange.header('http::translated-uri'),
-                        qs: qs.parse(exchange.header('http::query-string')),
-                        headers: headers,
-                    });
-
+                   
                     var parsed = url.parse(this.uri);
 
                     if (exchange.body.pipe && typeof exchange.body.pipe === 'function') {
@@ -101,18 +94,37 @@ module.exports = {
                             port: parsed.port,
                             path: parsed.path + exchange.header('http::translated-uri'),
                             headers: headers,
-                            method: exchange.header('http::request-method')
+                            method: exchange.header('http::request-method'),
+                            timeout: this.options.timeout
                         };
-
                         var req = http.request(options);
+                        var that = this;
 
                         req.on('response', function(resp) {
+                            for(var i in resp.headers) {
+                                exchange.header('http::' + i, resp.headers[i]);
+                            }
                             exchange.header('http::status-code', resp.statusCode);
                             deferred.resolve(resp);
                         });
 
-                        req.on('error', function(e) {
-                            console.log('problem with request: ' + e.message);
+                        req.on('socket', function(socket) {
+                                socket.setTimeout(that.options.timeout);  
+                                socket.on('timeout', function() {
+                                        req.abort();
+                                });
+
+                        });
+
+                        req.on('error', function(err) {
+                            console.log('problem with request: ' + err.message);
+                            console.log('testing');
+                            exchange.error = err;
+                            if (err.code === "ECONNRESET") {
+                                exchange.body = "Timeout occurs";
+                                
+                            }
+                            deferred.resolve(exchange);
                         });
 
                         exchange.body.pipe(req);
@@ -121,13 +133,21 @@ module.exports = {
 
                         // TODO: implement native nodejs http
 
+                        var outboundRequest = request({
+                                            method: exchange.header('http::request-method'),
+                                            uri: this.uri + exchange.header('http::translated-uri'),
+                                            qs: qs.parse(exchange.header('http::query-string')),
+                                            headers: headers,
+                                            timeout: this.options.timeout
+                                        });
+
+
                         outboundRequest.on('response', function(resp) {
                             exchange.body = resp;
                             deferred.resolve(exchange);
                         });
 
                         outboundRequest.on('error', function(e) {
-
                             console.log('ERROR ....');
                             exchange.error = e;
                             // FIXME change this to use deferred.reject for error handling
@@ -149,22 +169,17 @@ module.exports = {
                 }
 
             } else {
-
-                // if(exchange.headers['http::request-method'] == 'GET') {
-
-                //     // TODO: untuk handlng stream atau non stream request body
-                //     request(this.uri + exchange.headers['http::translated-uri'], function(err, res, body) {
-
-                //         if (!err && res.statusCode == 200) {
-                //             exchange.body = body;
-                //         } else {
-                //             exchange.error = new Error('HTTP error!');
-                //             exchange.error.statusCode = res.statusCode;
-                //         }
-                //         deferred.resolve(exchange);
-                //     });
-
-                // } else {
+                    var headers = {};
+                    
+                    if (!exchange.body.pipe){
+                        
+                        var data = exchange.body
+                        if (typeof data !== 'string') {
+                                data = JSON.stringify(data);
+                        }
+                        headers['content-length'] = data.length;
+                        // headers['yesbee-allowed'] = exchange.headers['http::yesbee-allowed'];
+                    }
 
                     var _data = {};
 
@@ -172,14 +187,20 @@ module.exports = {
 
                     var outboundRequest = request({
                         method: exchange.headers['http::request-method'],
-                        // uri: this.uri + exchange.headers['http::translated-uri'],
-                        uri: this.uri
+                        uri: this.uri,
+                        headers : headers,
+                        timeout : this.options.timeout
                     }, function(err, res, body) {
+                        console.log(body);
+                        exchange.body = body;
 
-                        if (!err) {
-                            exchange.body = body;
-                        } else {
-                            exchange.error = err;
+                        if(err){
+                            exchange.error = err
+                        }else{
+                            
+                            for(var i in res.headers) {
+                                exchange.header('http::' + i, res.headers[i]);
+                            }
                         }
                         deferred.resolve(exchange);
                     });
